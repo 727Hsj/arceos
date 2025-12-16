@@ -73,9 +73,9 @@ impl GeneralOptions {
         SERVICE.lock().register_waker(self.device_mask(), waker);
     }
 
-    pub fn send_poller<'a, P: Pollable, F: FnMut() -> AxResult<T>, T>(
+    pub fn send_poller<P: Pollable, F: FnMut() -> AxResult<T>, T>(
         &self,
-        pollable: &'a P,
+        pollable: &P,
         f: F,
     ) -> AxResult<T> {
         block_on(timeout(
@@ -84,9 +84,9 @@ impl GeneralOptions {
         ))?
     }
 
-    pub fn recv_poller<'a, P: Pollable, F: FnMut() -> AxResult<T>, T>(
+    pub fn recv_poller<P: Pollable, F: FnMut() -> AxResult<T>, T>(
         &self,
-        pollable: &'a P,
+        pollable: &P,
         f: F,
     ) -> AxResult<T> {
         block_on(timeout(

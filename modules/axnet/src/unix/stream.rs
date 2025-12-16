@@ -285,11 +285,10 @@ impl TransportOps for StreamTransport {
             self.tx_closed.store(true, Ordering::Release);
             self.poll_state.wake();
         }
-        if self.rx_closed.load(Ordering::Acquire) && self.tx_closed.load(Ordering::Acquire) {
-            if let Some(chan) = self.channel.lock().take() {
+        if self.rx_closed.load(Ordering::Acquire) && self.tx_closed.load(Ordering::Acquire)
+            && let Some(chan) = self.channel.lock().take() {
                 chan.poll_update.wake();
             }
-        }
         Ok(())
     }
 }
@@ -307,7 +306,7 @@ impl Pollable for StreamTransport {
                 !self.tx_closed.load(Ordering::Acquire) && chan.tx.vacant_len() > 0,
             );
         } else if let Some((conn_tx, _)) = self.conn_rx.lock().as_ref() {
-            events.set(IoEvents::IN, conn_tx.len() > 0);
+            events.set(IoEvents::IN, !conn_tx.is_empty());
         }
         events.set(IoEvents::RDHUP, self.rx_closed.load(Ordering::Acquire));
         events
@@ -318,11 +317,10 @@ impl Pollable for StreamTransport {
             if events.intersects(IoEvents::IN | IoEvents::OUT) {
                 chan.poll_update.register(context.waker());
             }
-        } else if let Some((_, poll_new_conn)) = self.conn_rx.lock().as_ref() {
-            if events.contains(IoEvents::IN) {
+        } else if let Some((_, poll_new_conn)) = self.conn_rx.lock().as_ref()
+            && events.contains(IoEvents::IN) {
                 poll_new_conn.register(context.waker());
             }
-        }
         self.poll_state.register(context.waker());
     }
 }

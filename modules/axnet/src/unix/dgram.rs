@@ -261,11 +261,10 @@ impl Pollable for DgramTransport {
     }
 
     fn register(&self, context: &mut Context<'_>, events: IoEvents) {
-        if let Some((_, poll)) = self.data_rx.lock().as_ref() {
-            if events.contains(IoEvents::IN) {
+        if let Some((_, poll)) = self.data_rx.lock().as_ref()
+            && events.contains(IoEvents::IN) {
                 poll.register(context.waker());
             }
-        }
     }
 }
 

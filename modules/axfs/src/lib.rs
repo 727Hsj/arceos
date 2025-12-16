@@ -1,5 +1,4 @@
 #![cfg_attr(all(not(test), not(doc)), no_std)]
-#![feature(maybe_uninit_slice)]
 #![feature(doc_cfg)]
 #![allow(clippy::new_ret_no_self)]
 

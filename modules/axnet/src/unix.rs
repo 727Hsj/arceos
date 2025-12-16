@@ -120,14 +120,14 @@ fn with_slot_or_insert<R>(
                 .write(true)
                 .create(true)
                 .node_type(NodeType::Socket)
-                .open(&*FS_CONTEXT.lock(), path.as_ref())?
+                .open(&FS_CONTEXT.lock(), path.as_ref())?
                 .into_location();
             if loc.metadata()?.node_type != NodeType::Socket {
                 return Err(AxError::NotASocket);
             }
             f(loc
                 .user_data()
-                .get_or_insert_with(|| BindSlot::default())
+                .get_or_insert_with(BindSlot::default)
                 .as_ref())
         }
     }

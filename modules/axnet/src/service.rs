@@ -62,7 +62,7 @@ impl Service {
     }
 
     pub fn register_waker(&mut self, mask: u32, waker: &Waker) {
-        let next = self.iface.poll_at(now(), &mut SOCKET_SET.inner.lock());
+        let next = self.iface.poll_at(now(), &SOCKET_SET.inner.lock());
 
         if let Some(t) = next {
             let next = TimeValue::from_micros(t.total_micros() as _);

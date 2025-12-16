@@ -462,7 +462,7 @@ impl CachedFile {
 
     fn evict_cache(&self, file: &FileNode, pn: u32, page: &mut PageCache) -> VfsResult<()> {
         for listener in self.shared.evict_listeners.lock().iter() {
-            (listener.listener)(pn, &page);
+            (listener.listener)(pn, page);
         }
         if page.dirty {
             let page_start = pn as u64 * PAGE_SIZE as u64;
@@ -623,12 +623,12 @@ impl CachedFile {
                 .filter(|it| *it > new_last_page)
                 .collect::<Vec<_>>();
             for pn in keys {
-                if let Some(mut page) = guard.pop(&pn) {
-                    if !self.in_memory {
-                        // Don't write back pages since they're discarded
-                        page.dirty = false;
-                        self.evict_cache(file, pn, &mut page)?;
-                    }
+                if let Some(mut page) = guard.pop(&pn)
+                    && !self.in_memory
+                {
+                    // Don't write back pages since they're discarded
+                    page.dirty = false;
+                    self.evict_cache(file, pn, &mut page)?;
                 }
             }
         }
@@ -874,13 +874,13 @@ impl File {
     }
 }
 
-impl<'a> axio::Read for &'a File {
+impl axio::Read for &File {
     fn read(&mut self, mut buf: &mut [u8]) -> axio::Result<usize> {
         (*self).read(&mut buf)
     }
 }
 
-impl<'a> axio::Write for &'a File {
+impl axio::Write for &File {
     fn write(&mut self, mut buf: &[u8]) -> axio::Result<usize> {
         (*self).write(&mut buf)
     }
@@ -890,7 +890,7 @@ impl<'a> axio::Write for &'a File {
     }
 }
 
-impl<'a> axio::Seek for &'a File {
+impl axio::Seek for &File {
     fn seek(&mut self, pos: SeekFrom) -> axio::Result<u64> {
         self.access(FileFlags::empty())?;
 

@@ -13,8 +13,6 @@
 //! [smoltcp]: https://github.com/smoltcp-rs/smoltcp
 
 #![no_std]
-#![feature(ip_from)]
-#![feature(maybe_uninit_slice)]
 
 #[macro_use]
 extern crate log;
@@ -101,6 +99,10 @@ pub fn init_network(mut net_devs: AxDeviceContainer<AxNetDevice>) {
         warn!("  No network device found!");
         None
     };
+
+    for dev in &router.devices {
+        info!("Device: {}", dev.name());
+    }
 
     let mut service = Service::new(router);
     service.iface.update_ip_addrs(|ip_addrs| {

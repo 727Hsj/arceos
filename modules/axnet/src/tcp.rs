@@ -380,22 +380,20 @@ impl SocketOps for TcpSocket {
                     Ok(0)
                 } else if socket.recv_queue() == 0 {
                     Err(AxError::WouldBlock)
-                } else {
-                    if options.flags.contains(RecvFlags::PEEK) {
-                        dst.write(
-                            socket
-                                .peek(dst.remaining_mut())
-                                .map_err(|_| ax_err_type!(NotConnected, "not connected?"))?,
-                        )
-                    } else {
+                } else if options.flags.contains(RecvFlags::PEEK) {
+                    dst.write(
                         socket
-                            .recv(|buf| {
-                                let result = dst.write(buf);
-                                let len = result.unwrap_or(0);
-                                (len, result)
-                            })
-                            .map_err(|_| ax_err_type!(NotConnected, "not connected?"))?
-                    }
+                            .peek(dst.remaining_mut())
+                            .map_err(|_| ax_err_type!(NotConnected, "not connected?"))?,
+                    )
+                } else {
+                    socket
+                        .recv(|buf| {
+                            let result = dst.write(buf);
+                            let len = result.unwrap_or(0);
+                            (len, result)
+                        })
+                        .map_err(|_| ax_err_type!(NotConnected, "not connected?"))?
                 }
             })
         })
