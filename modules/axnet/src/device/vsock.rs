@@ -164,7 +164,7 @@ fn handle_vsock_event(event: VsockDriverEvent, dev: &mut AxVsockDevice, buf: &mu
     match event {
         VsockDriverEvent::ConnectionRequest(conn_id) => {
             if let Err(e) = manager.on_connection_request(conn_id) {
-                warn!("Connection request failed: {conn_id:?}, error={e:?}");
+                info!("Connection request failed: {conn_id:?}, error={e:?}");
             }
         }
 
@@ -172,7 +172,7 @@ fn handle_vsock_event(event: VsockDriverEvent, dev: &mut AxVsockDevice, buf: &mu
             let free_space = if let Some(conn) = manager.get_connection(conn_id) {
                 conn.lock().rx_buffer_free()
             } else {
-                warn!("Received data for unknown connection: {conn_id:?}");
+                info!("Received data for unknown connection: {conn_id:?}");
                 return;
             };
 
@@ -187,24 +187,24 @@ fn handle_vsock_event(event: VsockDriverEvent, dev: &mut AxVsockDevice, buf: &mu
             match dev.recv(conn_id, &mut buf[..max_read]) {
                 Ok(read_len) => {
                     if let Err(e) = manager.on_data_received(conn_id, &buf[..read_len]) {
-                        warn!("Failed to handle received data: conn_id={conn_id:?}, error={e:?}",);
+                        info!("Failed to handle received data: conn_id={conn_id:?}, error={e:?}",);
                     }
                 }
                 Err(e) => {
-                    warn!("Failed to receive vsock data: conn_id={conn_id:?}, error={e:?}",);
+                    info!("Failed to receive vsock data: conn_id={conn_id:?}, error={e:?}",);
                 }
             }
         }
 
         VsockDriverEvent::Disconnected(conn_id) => {
             if let Err(e) = manager.on_disconnected(conn_id) {
-                warn!("Failed to handle disconnection: {conn_id:?}, error={e:?}",);
+                info!("Failed to handle disconnection: {conn_id:?}, error={e:?}",);
             }
         }
 
         VsockDriverEvent::Connected(conn_id) => {
             if let Err(e) = manager.on_connected(conn_id) {
-                warn!("Failed to handle connection established: {conn_id:?}, error={e:?}",);
+                info!("Failed to handle connection established: {conn_id:?}, error={e:?}",);
             }
         }
 
