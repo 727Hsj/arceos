@@ -3,13 +3,13 @@ use core::{
     time::Duration,
 };
 
+use alloc::collections::VecDeque;
 use axdriver::prelude::*;
 use axerrno::{AxError, AxResult, ax_bail};
 use axsync::Mutex;
 use axtask::future::{block_on, interruptible};
 
 use crate::{alloc::string::ToString, vsock::connection_manager::VSOCK_CONN_MANAGER};
-use alloc::collections::VecDeque;
 
 // we need a global and static only one vsock device
 static VSOCK_DEVICE: Mutex<Option<AxVsockDevice>> = Mutex::new(None);
@@ -135,12 +135,13 @@ fn poll_vsock_interfaces() -> AxResult<bool> {
     let mut guard = VSOCK_DEVICE.lock();
     let dev = guard.as_mut().ok_or(AxError::NotFound)?;
     let mut event_count = 0;
+    let mut buf = alloc::vec![0; VSOCK_RX_TMPBUF_SIZE];
 
     // Process pending events first
     // Use core::mem::take to atomically move all events out and empty the global queue
     let pending_events = core::mem::take(&mut *PENDING_EVENTS.lock());
     for event in pending_events {
-        handle_vsock_event(event, dev);
+        handle_vsock_event(event, dev, &mut buf);
     }
 
     loop {
@@ -148,7 +149,7 @@ fn poll_vsock_interfaces() -> AxResult<bool> {
             Ok(None) => break, // no more events
             Ok(Some(event)) => {
                 event_count += 1;
-                handle_vsock_event(event, dev);
+                handle_vsock_event(event, dev, &mut buf);
             }
             Err(e) => {
                 info!("Failed to poll vsock event: {:?}", e);
@@ -159,7 +160,7 @@ fn poll_vsock_interfaces() -> AxResult<bool> {
     Ok(event_count > 0)
 }
 
-fn handle_vsock_event(event: VsockDriverEvent, dev: &mut dyn VsockDriverOps) {
+fn handle_vsock_event(event: VsockDriverEvent, dev: &mut AxVsockDevice, buf: &mut [u8]) {
     let mut manager = VSOCK_CONN_MANAGER.lock();
     debug!("Handling vsock event: {:?}", event);
 
@@ -183,7 +184,6 @@ fn handle_vsock_event(event: VsockDriverEvent, dev: &mut dyn VsockDriverOps) {
                 return;
             }
 
-            let mut buf = alloc::vec![0; VSOCK_RX_TMPBUF_SIZE];
             let max_read = core::cmp::min(free_space, buf.len());
             match dev.recv(conn_id, &mut buf[..max_read]) {
                 Ok(read_len) => {
